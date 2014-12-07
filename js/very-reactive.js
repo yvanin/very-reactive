@@ -12,9 +12,27 @@ https://github.com/yvanin/very-reactive */
     };
 
     var addReactSubscriber = function (source, subscriber) {
-        if (!source.reactSubscribers)
+        if (!source.reactSubscribers) {
             source.reactSubscribers = [];
+        }
         source.reactSubscribers.push(subscriber);
+    };
+
+    var disposeReactSubscribers = function () {
+        var i;
+        if (this.reactSubscribers) {
+            for (i = 0; i < this.reactSubscribers.length; i++) {
+                if (this.reactRx && this.reactSubscribers[i].dispose) {
+                    this.reactSubscribers[i].dispose();
+                }
+                if (this.reactBacon && typeof (this.reactSubscribers[i]) == 'function') {
+                    this.reactSubscribers[i].call();
+                }
+            }
+            this.reactSubscribers = [];
+        } else {
+            console.warn('reactSubscribers is missing');
+        }
     };
 
     // RxJs binding
@@ -38,16 +56,18 @@ https://github.com/yvanin/very-reactive */
                     that.setState(that.state.data);
                 },
                 spec.stateFromObservable.error,
-                spec.stateFromObservable.completed);
+                spec.stateFromObservable.completed
+            );
 
-            if (oldComponentDidMount)
+            if (oldComponentDidMount) {
                 oldComponentDidMount.call(null);
+            }
 
             addReactSubscriber(source, observer);
 
         };
 
-        source._reactRx = true;
+        source.reactRx = true;
         source.disposeReactSubscribers = disposeReactSubscribers.bind(source);
     };
 
@@ -70,30 +90,19 @@ https://github.com/yvanin/very-reactive */
                 function (next) {
                     that.state.data.push(next);
                     that.setState(that.state.data);
-                });
+                }
+            );
 
-            if (oldComponentDidMount)
+            if (oldComponentDidMount) {
                 oldComponentDidMount.call(null);
+            }
 
             addReactSubscriber(source, observer);
 
         };
 
-        source._reactBacon = true;
+        source.reactBacon = true;
         source.disposeReactSubscribers = disposeReactSubscribers.bind(source);
-    };
-
-    var disposeReactSubscribers = function () {
-        if (this.reactSubscribers) {
-            for (var i = 0; i < this.reactSubscribers.length; i++) {
-                if (this._reactRx && this.reactSubscribers[i].dispose)
-                    this.reactSubscribers[i].dispose();
-                if (this._reactBacon && typeof (this.reactSubscribers[i]) == 'function')
-                    this.reactSubscribers[i].call();
-            }
-            this.reactSubscribers = [];
-        }
-        else console.warn('reactSubscribers is missing');
     };
 
     var init = function () {
@@ -101,16 +110,20 @@ https://github.com/yvanin/very-reactive */
 
         React.createClass = function (spec) {
             if (spec) {
-                if (spec.stateFromObservable)
+                if (spec.stateFromObservable) {
                     bindStateFromObservable(spec);
-                else if (spec.stateFromEventStream)
+                } else if (spec.stateFromEventStream) {
                     bindStateFromEventStream(spec);
+                }
             }
 
             return oldCreateClass.call(null, spec);
         };
-    }
+    };
 
-    if (React) init();
-    else console.error('React is not defined');
+    if (React) {
+        init();
+    } else {
+        console.error('React is not defined');
+    }
 })(React);
